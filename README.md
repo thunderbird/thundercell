@@ -8,3 +8,11 @@ We will soon use issues and projects for meta-tracking before migrating approved
 to Bugzilla (in a fully fleshed form)
 
 Here, we forge only the strongest thunder.
+
+## Oxidization
+
+Where possible, we should look to Rust for replacement components to ensure memory safety and performance in the backend. This is especially important for critical components such as:
+
+ - protocols
+ - databases
+ - OS/system integration
