@@ -1,4 +1,4 @@
-# thundercell
+# Thundercell
 
 Internal repository to assist the backend team with discovery, prototyping and documenting future
 efforts to replace aging components.
