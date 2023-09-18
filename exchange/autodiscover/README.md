@@ -10,3 +10,4 @@ A few notes about this prototype:
 * It doesn't support [redirection of address](https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/redirectaddr-pox) and [of URL](https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/redirecturl-pox) - we'll want that.
 * It uses `Basic` auth, which is not recommended, not sure if I'll have a go at making it work with OAuth before work starts on the MVP.
 * [Here](https://gitlab.gnome.org/GNOME/evolution-ews/-/blob/52053904fc280289b4d1a2b9fa943fa4b347ec22/src/EWS/common/e-ews-connection.c#L2409) is a good starting point to understand how Evolution handles autodiscovery responses.
+* Its error handling is quite lacking (which is fine since it's never meant to be anything other than a testing ground).
