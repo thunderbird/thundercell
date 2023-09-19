@@ -2,8 +2,14 @@ use std::io::{BufRead, Write};
 
 use reqwest::{Client, Request, StatusCode};
 use rpassword;
-use xml::reader;
-use xml::writer;
+use xml::{reader, writer};
+
+// The schema for POX autodiscovery requests.
+const REQUEST_SCHEMA: &str =
+    "http://schemas.microsoft.com/exchange/autodiscover/outlook/requestschema/2006";
+// The schema for POX autodiscovery responses.
+const RESPONSE_SCHEMA: &str =
+    "http://schemas.microsoft.com/exchange/autodiscover/outlook/responseschema/2006a";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -112,17 +118,15 @@ fn generate_autodiscover_request_body(
 
     // Write the request's body using `XmlEvent`s.
     let events = vec![
-        writer::XmlEvent::from(writer::XmlEvent::start_element("Autodiscover").default_ns(
-            "http://schemas.microsoft.com/exchange/autodiscover/outlook/requestschema/2006",
-        )),
+        writer::XmlEvent::from(
+            writer::XmlEvent::start_element("Autodiscover").default_ns(REQUEST_SCHEMA),
+        ),
         writer::XmlEvent::from(writer::XmlEvent::start_element("Request")),
         writer::XmlEvent::from(writer::XmlEvent::start_element("EMailAddress")),
         writer::XmlEvent::from(writer::XmlEvent::characters(email)),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::start_element("AcceptableResponseSchema")),
-        writer::XmlEvent::from(writer::XmlEvent::characters(
-            "http://schemas.microsoft.com/exchange/autodiscover/outlook/responseschema/2006a",
-        )),
+        writer::XmlEvent::from(writer::XmlEvent::characters(RESPONSE_SCHEMA)),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
@@ -179,9 +183,15 @@ fn get_url_from_autodiscover_response(res: String) -> Result<String, Box<dyn std
             Ok(reader::XmlEvent::EndElement { name }) => {
                 let tag_name = name.local_name;
                 match tag_name.as_str() {
-                    "Account" => in_account = false,
-                    "Protocol" => in_protocol = false,
-                    "ASUrl" => in_as_url = false,
+                    "Account" => {
+                        in_account = false;
+                    }
+                    "Protocol" => {
+                        in_protocol = false;
+                    }
+                    "ASUrl" => {
+                        in_as_url = false;
+                    }
                     _ => {}
                 }
             }
@@ -197,4 +207,119 @@ fn get_url_from_autodiscover_response(res: String) -> Result<String, Box<dyn std
     }
 
     Ok(url)
+}
+
+#[cfg(test)]
+mod test {
+    use std::collections::HashMap;
+
+    use super::*;
+
+    use xml::namespace;
+
+    // Test that we generate valid bodies for autodiscovery requests.
+    #[test]
+    fn request_body_is_valid() {
+        // Address to test with.
+        let address = String::from("sylah@domain.test");
+        // The expected depth of each element in the XML document.
+        let expected_depths: HashMap<&str, i32> = HashMap::from([
+            ("Autodiscover", 0),
+            ("Request", 1),
+            ("EMailAddress", 2),
+            ("AcceptableResponseSchema", 2),
+        ]);
+
+        // Generate the body.
+        let req_body = generate_autodiscover_request_body(&address)
+            .expect("failed to generate a request body");
+
+        // The currend depth in the XML document.
+        let mut depth = 0;
+        // Whether we're in the EMailAddress element.
+        let mut in_address = false;
+        // Whether the EMailAddress includes text.
+        let mut text_in_address = false;
+        // Whether we're in the AcceptableResponseSchema element.
+        let mut in_res_schema = false;
+        // Whether the AcceptableResponseSchema includes text.
+        let mut text_in_res_schema = false;
+
+        // Parse the body.
+        let buf = req_body.into_bytes();
+        let parser = reader::EventReader::new(buf.as_slice());
+        for e in parser {
+            match e {
+                Ok(reader::XmlEvent::StartElement {
+                    name,
+                    attributes: _,
+                    namespace,
+                }) => {
+                    // Compare the current depth against the expected depth for this element.
+                    let tag_name = name.local_name.as_str();
+                    let expected_depth = expected_depths.get(tag_name).unwrap_or(&-1).to_owned();
+
+                    assert_eq!(depth, expected_depth, "Invalid depth for tag {}", tag_name);
+
+                    match tag_name {
+                        "Autodiscover" => {
+                            // Check that the Autodiscover element has the correct default namespace.
+                            let default_ns = namespace
+                                .get(namespace::NS_EMPTY_URI)
+                                .unwrap_or("missing default namespace for Autodiscover tag");
+
+                            assert_eq!(default_ns, REQUEST_SCHEMA);
+                        }
+                        "EMailAddress" => {
+                            in_address = true;
+                        }
+                        "AcceptableResponseSchema" => {
+                            in_res_schema = true;
+                        }
+                        _ => {}
+                    }
+
+                    // Increase the current depth.
+                    depth += 1;
+                }
+                Ok(reader::XmlEvent::Characters(text)) => {
+                    if in_address {
+                        // If we're in the EMailAddress element, check that the
+                        // element's content is the email address.
+                        assert_eq!(text, address);
+                        text_in_address = true;
+                    }
+
+                    if in_res_schema {
+                        // If we're in the AcceptableResponseSchema, check that we're
+                        // referring to the correct schema.
+                        assert_eq!(text, RESPONSE_SCHEMA);
+                        text_in_res_schema = true;
+                    }
+                }
+                Ok(reader::XmlEvent::EndElement { name }) => {
+                    // If we were in an element we're checking the content of,
+                    // check that it isn't empty, and track that we've left it.
+                    // TODO: Check that there isn't more than one element of each type.
+                    match name.local_name.as_str() {
+                        "EMailAddress" => {
+                            assert!(text_in_address);
+                            in_address = false;
+                        }
+                        "AcceptableResponseSchema" => {
+                            assert!(text_in_res_schema);
+                            in_res_schema = false;
+                        }
+                        _ => {}
+                    }
+                    // Decrease the current depth.
+                    depth -= 1;
+                }
+                Err(e) => {
+                    panic!("{}", e.to_string())
+                }
+                _ => {}
+            }
+        }
+    }
 }
