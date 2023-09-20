@@ -1,7 +1,7 @@
 use std::io::{BufRead, Write};
 
 use reqwest::{Client, Request, StatusCode};
-use rpassword;
+
 use xml::{reader, writer};
 
 // The schema for POX autodiscovery requests.
@@ -87,7 +87,7 @@ fn build_request(
         "https://autodiscover.{}/autodiscover/autodiscover.xml",
         domain
     );
-    let request_body = generate_autodiscover_request_body(&address)?;
+    let request_body = generate_autodiscover_request_body(address)?;
     let mut req = client
         .post(autodiscover_url)
         .header("Content-Type", "text/xml; charset=utf-8")
@@ -123,10 +123,10 @@ fn generate_autodiscover_request_body(
         ),
         writer::XmlEvent::from(writer::XmlEvent::start_element("Request")),
         writer::XmlEvent::from(writer::XmlEvent::start_element("EMailAddress")),
-        writer::XmlEvent::from(writer::XmlEvent::characters(email)),
+        writer::XmlEvent::characters(email),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::start_element("AcceptableResponseSchema")),
-        writer::XmlEvent::from(writer::XmlEvent::characters(RESPONSE_SCHEMA)),
+        writer::XmlEvent::characters(RESPONSE_SCHEMA),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
         writer::XmlEvent::from(writer::XmlEvent::end_element()),
@@ -199,7 +199,7 @@ fn get_url_from_autodiscover_response(res: String) -> Result<String, Box<dyn std
                 if in_as_url {
                     // If we're in an ASUrl element, then the characters in there
                     // are the URL we're looking for.
-                    url = String::from(text);
+                    url = text;
                 }
             }
             _ => {}
