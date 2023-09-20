@@ -105,7 +105,7 @@ fn build_request(
 // Generates the body for a POX EWS autodiscover request for the given email address.
 // Spec: https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/pox-autodiscover-request-for-exchange
 fn generate_autodiscover_request_body(
-    email: &String,
+    email: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
     // Buffer to use for writing the body.
     let mut buf = Vec::new();
