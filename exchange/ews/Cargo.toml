@@ -1,0 +1,25 @@
+[package]
+name = "ews"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "ews"
+
+[[example]]
+name = "find_item"
+required-features = ["examples"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = "0.11.20"
+serde = { version = "1.0.188", optional = true, features = ["derive"] }
+serde-xml-rs = "0.6.0"
+tokio = { version = "1.32.0", optional = true, features = ["rt", "macros"] }
+toml = { version = "0.8.2", optional = true }
+xml = "0.8.10"
+
+[features]
+default = ["examples"]
+examples = ["serde", "tokio", "toml"]
