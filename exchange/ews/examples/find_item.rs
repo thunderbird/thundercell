@@ -2,7 +2,7 @@ use std::fs;
 
 use ews::{
     net::request,
-    types::{Response, FindItem, FolderId, ItemShape, SoapEnvelope},
+    types::{FindItem, FolderId, ItemShape, Response, SoapEnvelope},
     xml::write_request,
 };
 use serde::Deserialize;

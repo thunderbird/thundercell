@@ -10,12 +10,6 @@ pub trait EwsWrite<W> {
     fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error>;
 }
 
-pub trait EwsRead: Sized {
-    /// Reads XML into structured data using the provided reader.
-    fn read<R: std::io::Read>(reader: &mut xml::EventReader<R>)
-        -> Result<Self, xml::reader::Error>;
-}
-
 #[derive(Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct SoapEnvelope {
@@ -280,7 +274,7 @@ pub struct RootFolder {
 #[derive(Deserialize, Serialize)]
 pub struct Items {
     #[serde(rename = "$value")]
-    items: Vec<EwsItem>
+    items: Vec<EwsItem>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -301,7 +295,8 @@ impl FindItemResponse {
             .next()
             .unwrap()
             .root_folder
-            .items.items
+            .items
+            .items
             .iter()
             .filter_map(|item| match item {
                 EwsItem::Message(message) => Some(message),

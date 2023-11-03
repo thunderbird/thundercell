@@ -1,4 +1,4 @@
-use xml::{attribute::OwnedAttribute, reader, writer, EventReader};
+use xml::writer;
 
 use crate::types::{EwsWrite, SOAP_NS_URI, TYPES_NS_URI};
 
@@ -20,49 +20,4 @@ pub fn write_request<W: std::io::Write, X: EwsWrite<W>>(
 
     writer.write(xml::writer::XmlEvent::end_element())?;
     writer.write(xml::writer::XmlEvent::end_element())
-}
-
-/// Skips ahead until it finds a matching element and returns its attributes.
-pub fn read_element_start<R: std::io::Read>(
-    reader: &mut EventReader<R>,
-    tag: &str,
-) -> Result<Vec<OwnedAttribute>, reader::Error> {
-    loop {
-        let event = reader.next()?;
-        match event {
-            xml::reader::XmlEvent::EndDocument => {
-                panic!("Unexpected end of document looking for {tag}")
-            }
-            xml::reader::XmlEvent::StartElement {
-                name, attributes, ..
-            } => {
-                if name.local_name == tag {
-                    return Ok(attributes);
-                }
-            }
-            _ => continue,
-        }
-    }
-}
-
-/// Skips ahead until it finds a matching element close tag.
-pub fn read_element_end<R: std::io::Read>(
-    reader: &mut EventReader<R>,
-    tag: &str,
-) -> Result<(), reader::Error> {
-    loop {
-        match reader.next()? {
-            xml::reader::XmlEvent::EndDocument => {
-                panic!("Unexpected end of document looking for {tag}")
-            }
-            xml::reader::XmlEvent::EndElement { name, .. } => {
-                if name.local_name == tag {
-                    break;
-                }
-            }
-            _ => continue,
-        }
-    }
-
-    Ok(())
 }
