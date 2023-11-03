@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use xml::writer::XmlEvent;
 
 pub const MESSAGES_NS_URI: &str = "http://schemas.microsoft.com/exchange/services/2006/messages";
 pub const SOAP_NS_URI: &str = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -7,7 +6,7 @@ pub const TYPES_NS_URI: &str = "http://schemas.microsoft.com/exchange/services/2
 
 pub trait EwsWrite<W> {
     /// Writes the struct as XML using the provided writer.
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error>;
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error>;
 }
 
 #[derive(Deserialize)]
@@ -58,18 +57,21 @@ pub enum FolderId {
 }
 
 impl<W: std::io::Write> EwsWrite<W> for FolderId {
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error> {
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error> {
         match self {
             FolderId::FolderId { .. } => todo!(),
             FolderId::DistinguishedFolderId { id, change_key, .. } => {
-                let mut builder = XmlEvent::start_element("t:DistinguishedFolderId").attr("Id", id);
-
+                let mut attrs = vec![("Id", id.as_str())];
                 if let Some(change_key) = change_key {
-                    builder = builder.attr("ChangeKey", change_key);
+                    attrs.push(("ChangeKey", change_key));
                 }
 
-                writer.write(builder)?;
-                writer.write(XmlEvent::end_element())
+                writer
+                    .create_element("t:DistinguishedFolderId")
+                    .with_attributes(attrs)
+                    .write_empty()?;
+
+                Ok(())
             }
         }
     }
@@ -86,17 +88,18 @@ pub enum BaseShape {
 }
 
 impl<W: std::io::Write> EwsWrite<W> for BaseShape {
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error> {
-        writer.write(XmlEvent::start_element("t:BaseShape"))?;
-
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error> {
         let value = match self {
             BaseShape::IdOnly => "IdOnly",
             BaseShape::Default => "Default",
             BaseShape::AllProperties => "AllProperties",
         };
 
-        writer.write(XmlEvent::characters(value))?;
-        writer.write(XmlEvent::end_element())
+        writer
+            .create_element("t:BaseShape")
+            .write_text_content(quick_xml::events::BytesText::new(value))?;
+
+        Ok(())
     }
 }
 
@@ -108,12 +111,16 @@ pub struct FolderShape {
 }
 
 impl<W: std::io::Write> EwsWrite<W> for FolderShape {
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error> {
-        writer.write(XmlEvent::start_element("FolderShape"))?;
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error> {
+        writer
+            .create_element("FolderShape")
+            .write_inner_content::<_, quick_xml::Error>(|writer| {
+                self.base_shape.write(writer)?;
 
-        self.base_shape.write(writer)?;
+                Ok(())
+            })?;
 
-        writer.write(XmlEvent::end_element())
+        Ok(())
     }
 }
 
@@ -122,12 +129,12 @@ pub struct ItemShape {
 }
 
 impl<W: std::io::Write> EwsWrite<W> for ItemShape {
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error> {
-        writer.write(XmlEvent::start_element("ItemShape"))?;
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error> {
+        writer
+            .create_element("ItemShape")
+            .write_inner_content(|writer| self.base_shape.write(writer))?;
 
-        self.base_shape.write(writer)?;
-
-        writer.write(XmlEvent::end_element())
+        Ok(())
     }
 }
 
@@ -179,30 +186,41 @@ impl FindItem {
 }
 
 impl<W: std::io::Write> EwsWrite<W> for FindItem {
-    fn write(&self, writer: &mut xml::EventWriter<W>) -> Result<(), xml::writer::Error> {
-        writer.write(
-            XmlEvent::start_element("FindItem")
-                .default_ns(MESSAGES_NS_URI)
-                .ns("t", TYPES_NS_URI)
-                .attr("Traversal", self.traversal.into()),
-        )?;
+    fn write(&self, writer: &mut quick_xml::writer::Writer<W>) -> Result<(), quick_xml::Error> {
+        writer
+            .create_element("FindItem")
+            .with_attributes([
+                ("xmlns", MESSAGES_NS_URI),
+                ("xmlns:t", TYPES_NS_URI),
+                ("Traversal", self.traversal.into()),
+            ])
+            .write_inner_content::<_, quick_xml::Error>(|writer| {
+                self.item_shape.write(writer)?;
 
-        self.item_shape.write(writer)?;
+                writer
+                    .create_element("ParentFolderIds")
+                    .write_inner_content::<_, quick_xml::Error>(|writer| {
+                        for id in &self.parent_folder_ids {
+                            id.write(writer)?;
+                        }
 
-        writer.write(XmlEvent::start_element("ParentFolderIds"))?;
-        for id in self.parent_folder_ids.iter() {
-            id.write(writer)?;
-        }
-        writer.write(XmlEvent::end_element())?;
+                        Ok(())
+                    })?;
 
-        writer.write(XmlEvent::end_element())
+                Ok(())
+            })?;
+
+        Ok(())
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct ItemId {
+    #[serde(rename = "@Id")]
     id: String,
+
+    #[serde(rename = "@ChangeKey")]
     change_key: String,
 }
 

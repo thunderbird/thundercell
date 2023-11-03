@@ -44,7 +44,7 @@ async fn main() {
         .await
         .expect("Unable to complete request");
 
-    let response: SoapEnvelope = serde_xml_rs::from_str(&response).expect("Unable to parse XML");
+    let response: SoapEnvelope = quick_xml::de::from_str(&response).expect("Unable to parse XML");
     match response.body.contents {
         Response::FindItemResponse(response) => {
             // Print a summary of what we found.
