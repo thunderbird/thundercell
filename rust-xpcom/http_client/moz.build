@@ -1,0 +1,5 @@
+DIRS += [
+    "public",
+]
+
+XPCOM_MANIFESTS += ["components.conf"]

@@ -1,0 +1,5 @@
+XPIDL_SOURCES += [
+    "nsIRustHttpClient.idl",
+]
+
+XPIDL_MODULE = "http_client"

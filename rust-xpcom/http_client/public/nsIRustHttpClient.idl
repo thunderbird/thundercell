@@ -1,0 +1,17 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+interface nsIStreamListener;
+
+[scriptable, builtinclass, rust_sync, uuid(ba45abb4-5563-4ea0-b80a-e80e1665b26d)]
+interface nsIRustHttpClient : nsISupports
+{
+    void request(in ACString method,
+                 in ACString url,
+                 in ACString requestBody,
+                 in ACString contentType,
+                 in nsIStreamListener listener);
+};
