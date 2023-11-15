@@ -97,6 +97,9 @@ impl HttpClient {
                 body_stream.SetUTF8Data(request_body).to_result()?;
 
                 // Set the stream as the channel's upload stream.
+                // Note: Here's how we could set the content-type ourself:
+                //     let content_type = nsCString::from("application/json");
+                //     let content_type: *const nsACString = &*content_type;
                 upload_channel
                     .ExplicitSetUploadStream(body_stream.coerce(), content_type, -1, method, false)
                     .to_result()?;
