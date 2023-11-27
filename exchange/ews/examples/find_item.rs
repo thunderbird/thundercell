@@ -39,6 +39,8 @@ async fn main() {
         eprintln!("Failed to write request: {err}");
     }
 
+    eprintln!("{}", std::str::from_utf8(&body_bytes).unwrap());
+
     // Send the request to Office365.
     let response = request(&config.username, &config.password, body_bytes)
         .await

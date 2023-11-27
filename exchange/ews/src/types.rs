@@ -1,7 +1,5 @@
-use ews_derive::{XmlElement, XmlAttribute};
+use ews_derive::{XmlAttribute, XmlElement};
 use serde::Deserialize;
-
-use crate::xml::XmlAttribute as _;
 
 pub const MESSAGES_NS_URI: &str = "http://schemas.microsoft.com/exchange/services/2006/messages";
 pub const SOAP_NS_URI: &str = "http://schemas.xmlsoap.org/soap/envelope/";
@@ -39,10 +37,10 @@ pub enum FolderId {
     ///
     /// See <https://learn.microsoft.com/en-us/exchange/client-developer/web-service-reference/folderid>.
     FolderId {
-        #[xml_serialize(is_attribute)]
+        #[xml_serialize(attribute)]
         id: String,
 
-        #[xml_serialize(is_attribute)]
+        #[xml_serialize(attribute)]
         change_key: Option<String>,
     },
 
@@ -53,10 +51,10 @@ pub enum FolderId {
     DistinguishedFolderId {
         // This should probably be an enum, but this is a proof of concept and
         // I'm not writing all of those out right now.
-        #[xml_serialize(is_attribute)]
+        #[xml_serialize(attribute)]
         id: String,
 
-        #[xml_serialize(is_attribute)]
+        #[xml_serialize(attribute)]
         change_key: Option<String>,
 
         mailbox: Option<Mailbox>,
@@ -102,7 +100,7 @@ pub enum Traversal {
 #[xml_serialize(default_ns = MESSAGES_NS_URI, ns = ("t", TYPES_NS_URI))]
 pub struct FindItem {
     /// The manner in which to traverse nested folders.
-    #[xml_serialize(is_attribute)]
+    #[xml_serialize(attribute)]
     traversal: Traversal,
 
     /// The desired properties to include in the response.

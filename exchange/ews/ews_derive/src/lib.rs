@@ -6,7 +6,7 @@ use xml_attribute::write_attribute_derivation;
 
 mod xml_element;
 use xml_element::{
-    write_element_derivation_for_enum, write_element_derivation_for_struct, ComponentOptions,
+    write_element_derivation_for_enum, write_element_derivation_for_struct, TypeOptions,
 };
 
 #[proc_macro_derive(XmlAttribute)]
@@ -25,7 +25,7 @@ pub fn derive_xml_write(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let options =
-        ComponentOptions::try_from(input.attrs).expect("Unable to parse component attributes");
+        TypeOptions::try_from(input.attrs).expect("Unable to parse component attributes");
 
     match input.data {
         syn::Data::Struct(struct_input) => {
