@@ -1,3 +1,7 @@
+//! `ews_derive` provides procedural macros for deriving implementations of the
+//! `XmlAttribute` and `XmlElement` traits for automated serialization of Rust
+//! structures to XML.
+
 use proc_macro::TokenStream;
 use syn::{parse_macro_input, DeriveInput};
 
