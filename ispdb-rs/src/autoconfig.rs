@@ -36,7 +36,7 @@ enum SocketKind {
     /// SSL3/TLS1
     SSL,
 
-    /// Upgrade to TLS on plain socvket
+    /// Upgrade to TLS on plain socket
     StartTLS,
 }
 
