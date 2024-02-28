@@ -2,7 +2,7 @@ use std::fs;
 
 use ews::{
     net::request,
-    types::{FindItem, FolderId, ItemShape, Response, SoapEnvelope},
+    types::{BodyContents, Envelope, FindItem, FolderId, ItemShape},
     xml::write_request,
 };
 use serde::Deserialize;
@@ -35,18 +35,20 @@ async fn main() {
 
     // Write the request as bytes.
     let mut body_bytes = Vec::new();
-    if let Err(err) = write_request(&mut body_bytes, body) {
+    if let Err(err) = write_request(&mut body_bytes, BodyContents::FindItem(body)) {
         eprintln!("Failed to write request: {err}");
     }
+
+    eprintln!("{}", std::str::from_utf8(&body_bytes).unwrap());
 
     // Send the request to Office365.
     let response = request(&config.username, &config.password, body_bytes)
         .await
         .expect("Unable to complete request");
 
-    let response: SoapEnvelope = serde_xml_rs::from_str(&response).expect("Unable to parse XML");
+    let response: Envelope = serde_xml_rs::from_str(&response).expect("Unable to parse XML");
     match response.body.contents {
-        Response::FindItemResponse(response) => {
+        BodyContents::FindItemResponse(response) => {
             // Print a summary of what we found.
             for message in response.messages() {
                 let id_short = message
